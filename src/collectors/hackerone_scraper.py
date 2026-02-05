@@ -26,12 +26,15 @@ class HackerOneCollector(DataCollector):
         self.username = username
         self.session = requests.Session()
         
+        # Set default headers for public access
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json'
+        })
+        
         if api_token and username:
-            # Use API authentication
+            # Use API authentication (requires paid API access)
             self.session.auth = (username, api_token)
-            self.session.headers.update({
-                'Accept': 'application/json'
-            })
     
     def collect(self, limit: int = 1000, use_cache: bool = True) -> List[VulnerabilityReport]:
         """
@@ -55,11 +58,12 @@ class HackerOneCollector(DataCollector):
         
         reports = []
         
-        if self.api_token:
-            # Use authenticated API
+        # Check if we have BOTH username and token for authenticated API
+        if self.api_token and self.username:
+            print("Using authenticated API...")
             reports = self._collect_via_api(limit)
         else:
-            # Use public Hacktivity feed
+            print("Using public Hacktivity feed...")
             reports = self._collect_via_hacktivity(limit)
         
         # Cache the results
