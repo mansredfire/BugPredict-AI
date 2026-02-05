@@ -1,4 +1,4 @@
-"""Base data source definitions - Production Ready"""
+"""Base data source definitions - Enhanced with all vulnerability types"""
 
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
@@ -7,47 +7,76 @@ from enum import Enum
 
 
 class VulnerabilityType(Enum):
-    """Enumeration of vulnerability types"""
+    """Comprehensive enumeration of vulnerability types"""
+    
+    # Injection Attacks
     XSS = "XSS"
-    SQLI = "SQL Injection"
-    IDOR = "IDOR"
-    SSRF = "SSRF"
-    RCE = "Remote Code Execution"
-    AUTH_BYPASS = "Authentication Bypass"
-    CSRF = "CSRF"
-    XXE = "XXE"
-    BUSINESS_LOGIC = "Business Logic"
-    INFO_DISCLOSURE = "Information Disclosure"
-    OPEN_REDIRECT = "Open Redirect"
-    FILE_UPLOAD = "File Upload"
-    PATH_TRAVERSAL = "Path Traversal"
-    DESERIALIZATION = "Deserialization"
-    COMMAND_INJECTION = "Command Injection"
-    OTHER = "Other"
-    # NEW: Add these missing types
+    SQL_INJECTION = "SQL Injection"
     NOSQL_INJECTION = "NoSQL Injection"
-    RACE_CONDITION = "Race Condition"
-    RATE_LIMIT_BYPASS = "Rate Limiting Issues"
+    COMMAND_INJECTION = "Command Injection"
+    XXE = "XXE"
+    
+    # Access Control
+    IDOR = "IDOR"
+    BROKEN_ACCESS_CONTROL = "Broken Access Control"
+    BROKEN_AUTHORIZATION = "Broken Authorization"
+    PRIVILEGE_ESCALATION = "Privilege Escalation"
+    
+    # Authentication
+    AUTH_BYPASS = "Authentication Bypass"
+    BROKEN_AUTHENTICATION = "Broken Authentication"
+    SESSION_FIXATION = "Session Fixation"
+    JWT_VULNERABILITIES = "JWT Vulnerabilities"
+    
+    # API Security
     API_ABUSE = "API Abuse"
     EXCESSIVE_DATA_EXPOSURE = "Excessive Data Exposure"
+    RATE_LIMIT_BYPASS = "Rate Limiting Issues"
     GRAPHQL_INJECTION = "GraphQL Injection"
     GRAPHQL_INTROSPECTION = "GraphQL Introspection"
     GRAPHQL_BATCHING = "GraphQL Batching Abuse"
-    WEBHOOK_ABUSE = "Webhook Abuse"
+    
+    # SSRF and Related
+    SSRF = "SSRF"
     CLOUD_MISCONFIGURATION = "Cloud Misconfiguration"
     S3_BUCKET_EXPOSURE = "S3 Bucket Exposure"
+    
+    # Business Logic
+    BUSINESS_LOGIC = "Business Logic"
+    RACE_CONDITION = "Race Condition"
+    WEBHOOK_ABUSE = "Webhook Abuse"
+    
+    # Data Exposure
+    INFO_DISCLOSURE = "Information Disclosure"
+    SENSITIVE_DATA_EXPOSURE = "Sensitive Data Exposure"
+    TOKEN_LEAKAGE = "Token/Credential Leakage"
+    
+    # Configuration Issues
     EXPOSED_ADMIN = "Exposed Admin Interface"
-    WEAK_CRYPTO = "Weak Cryptography"
-    BROKEN_AUTHENTICATION = "Broken Authentication"
-    BROKEN_AUTHORIZATION = "Broken Authorization"
-    SESSION_FIXATION = "Session Fixation"
-    JWT_VULNERABILITIES = "JWT Vulnerabilities"
     CORS_MISCONFIGURATION = "CORS Misconfiguration"
-    HOST_HEADER_INJECTION = "Host Header Injection"
+    WEAK_CRYPTO = "Weak Cryptography"
+    
+    # File Operations
+    FILE_UPLOAD = "File Upload"
+    PATH_TRAVERSAL = "Path Traversal"
+    
+    # Code Execution
+    RCE = "Remote Code Execution"
+    DESERIALIZATION = "Deserialization"
+    
+    # Web Attacks
+    CSRF = "CSRF"
     CLICKJACKING = "Clickjacking"
+    OPEN_REDIRECT = "Open Redirect"
+    HOST_HEADER_INJECTION = "Host Header Injection"
     HTTP_PARAMETER_POLLUTION = "HTTP Parameter Pollution"
     CACHE_POISONING = "Cache Poisoning"
+    
+    # Account Takeover
+    ACCOUNT_TAKEOVER = "Account Takeover"
+    
     OTHER = "Other"
+
 
 class Severity(Enum):
     """Vulnerability severity levels"""
@@ -80,7 +109,7 @@ class VulnerabilityReport:
     technology_stack: List[str] = field(default_factory=list)
     endpoint: str = ""
     http_method: str = "GET"
-    vulnerability_location: str = "web"  # web, api, mobile, other
+    vulnerability_location: str = "web"  # web, api, mobile, cloud, other
     
     # Context
     description: str = ""
@@ -142,7 +171,7 @@ class VulnerabilityReport:
 
 
 class DataCollector:
-    """Base class for data collection"""
+    """Base class for data collection with enhanced vulnerability detection"""
     
     def __init__(self, cache_dir: str = "data/cache"):
         self.reports = []
@@ -189,35 +218,97 @@ class DataCollector:
         print(f"Loaded {len(reports)} reports from cache")
         return reports
     
-    def extract_vulnerability_type(self, text: str, weakness_name: str = "") -> str:
-        """Extract vulnerability type from text"""
+    def extract_vulnerability_type(self, text: str, weakness_name: str = "", cwe_id: int = 0) -> str:
+        """Extract vulnerability type from text - uses enhanced detector"""
+        from .enhanced_extractor import EnhancedVulnerabilityExtractor
         
-        text_lower = text.lower()
-        weakness_lower = weakness_name.lower()
+        extractor = EnhancedVulnerabilityExtractor()
+        return extractor.extract_vulnerability_type(text, weakness_name, cwe_id)
+    
+    def map_severity_to_score(self, severity: str) -> float:
+        """Map severity string to CVSS score"""
         
-        # Mapping keywords to vulnerability types
-        type_keywords = {
-            'XSS': ['xss', 'cross-site scripting', 'cross site scripting', 'reflected xss', 'stored xss', 'dom xss'],
-            'SQL Injection': ['sql injection', 'sqli', 'sql', 'union select', 'blind sql'],
-            'IDOR': ['idor', 'insecure direct object', 'broken access control', 'unauthorized access'],
-            'SSRF': ['ssrf', 'server-side request forgery', 'server side request'],
-            'Remote Code Execution': ['rce', 'remote code execution', 'code execution', 'command execution'],
-            'Authentication Bypass': ['auth bypass', 'authentication bypass', 'login bypass', 'authentication'],
-            'CSRF': ['csrf', 'cross-site request forgery', 'cross site request'],
-            'XXE': ['xxe', 'xml external entity', 'xml injection'],
-            'Business Logic': ['business logic', 'logic flaw', 'race condition', 'workflow'],
-            'Information Disclosure': ['information disclosure', 'info disclosure', 'sensitive data', 'data exposure'],
-            'Open Redirect': ['open redirect', 'unvalidated redirect'],
-            'File Upload': ['file upload', 'unrestricted upload', 'upload vulnerability'],
-            'Path Traversal': ['path traversal', 'directory traversal', 'lfi', 'local file inclusion'],
-            'Deserialization': ['deserialization', 'unsafe deserialization', 'pickle'],
-            'Command Injection': ['command injection', 'os command injection', 'shell injection']
+        severity_mapping = {
+            'critical': 9.5,
+            'high': 7.5,
+            'medium': 5.0,
+            'low': 3.0,
+            'none': 0.0
         }
         
-        # Check weakness name first
-        for vuln_type, keywords in type_keywords.items():
-            if any(keyword in weakness_lower for keyword in keywords):
-                return vuln_type
+        return severity_mapping.get(severity.lower(), 5.0)
+    
+    def extract_technologies(self, text: str) -> List[str]:
+        """Extract technology stack from text - enhanced version"""
         
-        # Then check text
-        for vuln_
+        tech_indicators = {
+            # Frontend Frameworks
+            'React': ['react', 'reactjs', 'react.js', 'react native'],
+            'Angular': ['angular', 'angularjs', 'angular.js'],
+            'Vue.js': ['vue', 'vuejs', 'vue.js', 'nuxt'],
+            'Svelte': ['svelte', 'sveltekit'],
+            'Next.js': ['next.js', 'nextjs', 'next js'],
+            
+            # Backend Frameworks
+            'Node.js': ['node', 'nodejs', 'node.js', 'express', 'nestjs', 'koa'],
+            'Python': ['python', 'django', 'flask', 'fastapi', 'tornado'],
+            'Ruby': ['ruby', 'rails', 'ruby on rails', 'sinatra'],
+            'PHP': ['php', 'laravel', 'symfony', 'wordpress', 'codeigniter'],
+            'Java': ['java', 'spring', 'spring boot', 'struts', 'hibernate'],
+            'Go': ['golang', 'go ', 'gin', 'echo'],
+            '.NET': ['asp.net', '.net', 'dotnet', 'c#'],
+            
+            # APIs
+            'GraphQL': ['graphql', 'graph ql', 'apollo'],
+            'REST': ['rest api', 'restful', 'rest '],
+            'gRPC': ['grpc', 'protocol buffers'],
+            'WebSocket': ['websocket', 'ws://'],
+            
+            # Databases
+            'MongoDB': ['mongodb', 'mongo'],
+            'PostgreSQL': ['postgresql', 'postgres', 'psql'],
+            'MySQL': ['mysql', 'mariadb'],
+            'Redis': ['redis'],
+            'Cassandra': ['cassandra'],
+            'DynamoDB': ['dynamodb', 'dynamo'],
+            'Elasticsearch': ['elasticsearch', 'elastic'],
+            
+            # Cloud
+            'AWS': ['aws', 'amazon web services', 's3', 'ec2', 'lambda', 'cloudfront'],
+            'Azure': ['azure', 'microsoft azure'],
+            'Google Cloud': ['gcp', 'google cloud', 'firebase'],
+            'Cloudflare': ['cloudflare', 'cf-'],
+            
+            # Containers & Orchestration
+            'Docker': ['docker', 'container'],
+            'Kubernetes': ['kubernetes', 'k8s', 'kubectl'],
+            
+            # Web Servers
+            'Nginx': ['nginx'],
+            'Apache': ['apache', 'httpd'],
+            'IIS': ['iis', 'internet information services'],
+            
+            # Authentication
+            'OAuth': ['oauth', 'oauth2'],
+            'JWT': ['jwt', 'json web token'],
+            'SAML': ['saml'],
+            
+            # Message Queues
+            'RabbitMQ': ['rabbitmq', 'rabbit mq'],
+            'Kafka': ['kafka', 'apache kafka'],
+            
+            # Mobile
+            'iOS': ['ios', 'swift', 'objective-c'],
+            'Android': ['android', 'kotlin'],
+            'React Native': ['react native'],
+            'Flutter': ['flutter', 'dart'],
+        }
+        
+        text_lower = text.lower()
+        technologies = []
+        
+        for tech, indicators in tech_indicators.items():
+            if any(indicator in text_lower for indicator in indicators):
+                technologies.append(tech)
+        
+        return list(set(technologies))
