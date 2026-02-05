@@ -598,6 +598,32 @@ python scripts/migrate_to_enhanced.py --force
 
 # Skip backup (not recommended)
 python scripts/migrate_to_enhanced.py --skip-backup
+
+✅ Test Suite Coverage:
+
+✅ 40+ vulnerability types (individual tests for each)
+✅ CWE mapping (18 CWE IDs tested)
+✅ Chain detection (10+ chain patterns)
+✅ Multi-type extraction (complex scenarios)
+✅ Integration tests (end-to-end flow)
+✅ Performance tests (speed benchmarks)
+✅ Partial chain detection
+✅ Chain ranking & scoring
+✅ Attack path generation
+
+Run Tests:
+bash# Run all tests
+pytest tests/test_enhanced_vulnerabilities.py -v
+
+# Run specific test class
+pytest tests/test_enhanced_vulnerabilities.py::TestEnhancedVulnerabilityExtractor -v
+
+# Run with coverage
+pytest tests/test_enhanced_vulnerabilities.py --cov=src --cov-report=html
+
+# Run performance tests only
+pytest tests/test_enhanced_vulnerabilities.py::TestPerformance -v
+
 ### Areas for Contribution
 
 - 🐛 Bug fixes
