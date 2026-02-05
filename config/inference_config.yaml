@@ -1,0 +1,58 @@
+# BugPredict AI Inference Configuration
+
+# Models
+models:
+  dir: "data/models"
+  vulnerability_predictor: "vulnerability_predictor.pkl"
+  severity_predictor: "severity_predictor.pkl"
+  chain_detector: "chain_detector.pkl"
+  feature_engineer: "feature_engineer.pkl"
+
+# Prediction
+prediction:
+  # Minimum probability threshold
+  min_probability: 0.1
+  
+  # Ensemble method
+  ensemble_method: "averaging"  # voting, averaging, weighted
+  
+  # Top N predictions to return
+  top_n: 10
+  
+  # Confidence thresholds
+  confidence_thresholds:
+    very_high: 0.8
+    high: 0.6
+    medium: 0.4
+    low: 0.0
+
+# Chain Detection
+chains:
+  enabled: true
+  min_chain_probability: 0.3
+  
+# Template Generation
+templates:
+  enabled: true
+  output_dir: "nuclei-templates/custom"
+  include_metadata: true
+
+# API
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  reload: false
+  log_level: "info"
+
+# Caching
+cache:
+  enabled: true
+  ttl: 3600  # seconds
+  max_size: 1000
+
+# Logging
+logging:
+  level: "INFO"
+  file: "inference.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
