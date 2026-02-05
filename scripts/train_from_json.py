@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """Train BugPredict AI models from JSON file"""
 
@@ -56,7 +55,7 @@ def main():
     
     # Initialize training pipeline
     print(f"\nInitializing training pipeline...")
-    pipeline = TrainingPipeline(output_dir=args.output_dir)
+    pipeline = TrainingPipeline(models_dir=args.output_dir)
     
     # Preprocess reports
     print(f"\nPreprocessing reports...")
