@@ -1,111 +1,66 @@
-def train_vulnerability_model(self, feature_data: Optional[pd.DataFrame] = None):
-    """Train the vulnerability type classifier"""
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import classification_report, accuracy_score
-    from sklearn.preprocessing import LabelEncoder
-    
-    self.logger.info("Training vulnerability classifier...")
-    
-    if feature_data is None:
-        feature_data = self.feature_data
-    
-    # Get only numeric columns
-    numeric_cols = feature_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
-    X = feature_data[numeric_cols]
-    
-    # Get target from processed reports
-    y = [getattr(r, 'vulnerability_type', 'Unknown') for r in self.processed_reports]
-    
-    # Encode target
-    le = LabelEncoder()
-    y_encoded = le.fit_transform(y)
-    
-    # Split data (with or without stratification based on dataset size)
-    try:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
-        )
-    except ValueError:
-        # Not enough samples for stratification
-        self.logger.warning("Too few samples for stratification, splitting without stratify")
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y_encoded, test_size=0.2, random_state=42
-        )
-    
-    # Train model
-    self.vulnerability_model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=20,
-        random_state=42,
-        n_jobs=-1
-    )
-    
-    self.vulnerability_model.fit(X_train, y_train)
-    
-    # Evaluate
-    y_pred = self.vulnerability_model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    
-    self.logger.info(f"Vulnerability classifier accuracy: {accuracy:.3f}")
-    
-    # Store label encoder
-    self.vulnerability_label_encoder = le
-    
-    return self.vulnerability_model
+"""Training pipeline for BugPredict AI models"""
 
-def train_severity_model(self, feature_data: Optional[pd.DataFrame] = None):
-    """Train the severity predictor"""
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import classification_report, accuracy_score
-    from sklearn.preprocessing import LabelEncoder
+import logging
+import pickle
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+import pandas as pd
+from datetime import datetime
+
+from ..collectors.data_sources import VulnerabilityReport
+from ..features.feature_engineer import FeatureEngineer
+
+
+class TrainingPipeline:
+    """Complete training pipeline for vulnerability prediction models"""
     
-    self.logger.info("Training severity predictor...")
+    def __init__(self, models_dir: str = "data/models"):
+        """
+        Initialize the training pipeline
+        
+        Args:
+            models_dir: Directory to save trained models
+        """
+        self.models_dir = Path(models_dir)
+        self.models_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize components
+        self.feature_engineer = FeatureEngineer()
+        
+        # Storage for processed data
+        self.raw_reports = []
+        self.processed_reports = []
+        self.feature_data = None
+        
+        # Models
+        self.vulnerability_model = None
+        self.severity_model = None
+        self.chain_detector = None
+        
+        # Label encoders
+        self.vulnerability_label_encoder = None
+        self.severity_label_encoder = None
+        
+        # Setup logging
+        self.logger = self._setup_logger()
     
-    if feature_data is None:
-        feature_data = self.feature_data
+    def _setup_logger(self) -> logging.Logger:
+        """Setup logging configuration"""
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        
+        # Console handler
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setLevel(logging.INFO)
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        
+        return logger
     
-    # Get only numeric columns
-    numeric_cols = feature_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
-    X = feature_data[numeric_cols]
-    
-    # Get target from processed reports
-    y = [getattr(r, 'severity', 'medium') for r in self.processed_reports]
-    
-    # Encode target
-    le = LabelEncoder()
-    y_encoded = le.fit_transform(y)
-    
-    # Split data (with or without stratification based on dataset size)
-    try:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
-        )
-    except ValueError:
-        # Not enough samples for stratification
-        self.logger.warning("Too few samples for stratification, splitting without stratify")
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y_encoded, test_size=0.2, random_state=42
-        )
-    
-    # Train model
-    self.severity_model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=15,
-        random_state=42,
-        n_jobs=-1
-    )
-    
-    self.severity_model.fit(X_train, y_train)
-    
-    # Evaluate
-    y_pred = self.severity_model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    
-    self.logger.info(f"Severity predictor accuracy: {accuracy:.3f}")
-    
-    # Store label encoder
-    self.severity_label_encoder = le
-    
-    return self.severity_model
+    def load_data(self, data_path: str) -> List[VulnerabilityReport]:
+        """
+        Loa
