@@ -8,9 +8,6 @@ import pandas as pd
 from datetime import datetime
 
 from ..collectors.data_sources import VulnerabilityReport
-from ..preprocessing.normalizer import DataNormalizer
-from ..preprocessing.deduplicator import Deduplicator
-from ..preprocessing.enricher import Enricher
 from ..features.feature_engineer import FeatureEngineer
 
 
@@ -28,9 +25,6 @@ class TrainingPipeline:
         self.models_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize components
-        self.normalizer = DataNormalizer()
-        self.deduplicator = Deduplicator()
-        self.enricher = Enricher()
         self.feature_engineer = FeatureEngineer()
         
         # Storage for processed data
@@ -87,7 +81,7 @@ class TrainingPipeline:
         
         return reports
     
-    def preprocess_data(self, reports: List[VulnerabilityReport]) -> List[VulnerabilityReport]:
+    def preprocess_reports(self, reports: List[VulnerabilityReport]) -> List[VulnerabilityReport]:
         """
         Preprocess vulnerability reports
         
@@ -99,80 +93,73 @@ class TrainingPipeline:
         """
         self.logger.info("Preprocessing data...")
         
-        # Normalize
-        self.logger.info("Normalizing data...")
-        normalized = self.normalizer.normalize_reports(reports)
-        self.logger.info(f"  -> Normalized: {len(normalized)} reports")
+        # Store raw reports
+        self.raw_reports = reports
         
-        # Deduplicate
-        self.logger.info("Removing duplicates...")
-        deduplicated = self.deduplicator.remove_duplicates(normalized)
-        self.logger.info(f"  -> Deduplicated: {len(deduplicated)} reports")
+        # For now, just pass through (no normalization/deduplication needed for CSV/JSON imports)
+        self.processed_reports = reports
         
-        # Enrich
-        self.logger.info("Enriching data...")
-        enriched = self.enricher.enrich_reports(deduplicated)
-        self.logger.info(f"  -> Enriched: {len(enriched)} reports")
+        self.logger.info(f"Preprocessed {len(self.processed_reports)} reports")
         
-        # Filter low quality reports
-        self.logger.info("Filtering reports with quality < 0.5...")
-        filtered = [
-            r for r in enriched 
-            if getattr(r, 'quality_score', 1.0) >= 0.5
-        ]
-        self.logger.info(f"  -> Filtered: {len(filtered)} reports")
-        
-        self.processed_reports = filtered
-        
-        return filtered
+        return self.processed_reports
     
-    def engineer_features(self, reports: List[VulnerabilityReport]) -> pd.DataFrame:
+    def engineer_features(self, reports: Optional[List[VulnerabilityReport]] = None) -> pd.DataFrame:
         """
         Engineer features from preprocessed reports
         
         Args:
-            reports: List of preprocessed reports
+            reports: List of preprocessed reports (uses self.processed_reports if None)
             
         Returns:
             DataFrame with engineered features
         """
         self.logger.info("Engineering features...")
         
+        if reports is None:
+            reports = self.processed_reports
+        
         # Extract features
         feature_data = self.feature_engineer.fit_transform(reports)
         
         # Save feature engineer
-        self.feature_engineer.save(self.models_dir / 'feature_engineer.pkl')
+        feature_engineer_path = self.models_dir / 'feature_engineer.pkl'
+        self.feature_engineer.save(str(feature_engineer_path))
+        self.logger.info(f"Saved feature engineer to {feature_engineer_path}")
         
         self.feature_data = feature_data
         
+        # Get only numeric columns for training
+        numeric_cols = feature_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        self.logger.info(f"Engineered {len(numeric_cols)} numeric features")
+        
         return feature_data
     
-    def train_vulnerability_model(self, feature_data=None):
+    def train_vulnerability_model(self, feature_data: Optional[pd.DataFrame] = None):
         """Train the vulnerability type classifier"""
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.model_selection import train_test_split
         from sklearn.metrics import classification_report, accuracy_score
+        from sklearn.preprocessing import LabelEncoder
         
         self.logger.info("Training vulnerability classifier...")
         
         if feature_data is None:
             feature_data = self.feature_data
         
-        # Prepare data
-        X = feature_data.drop(columns=['vulnerability_type_encoded'], errors='ignore')
+        # Get only numeric columns
+        numeric_cols = feature_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        X = feature_data[numeric_cols]
         
         # Get target from processed reports
         y = [getattr(r, 'vulnerability_type', 'Unknown') for r in self.processed_reports]
         
         # Encode target
-        from sklearn.preprocessing import LabelEncoder
         le = LabelEncoder()
         y_encoded = le.fit_transform(y)
         
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y_encoded, test_size=0.2, random_state=42
+            X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
         )
         
         # Train model
@@ -196,31 +183,32 @@ class TrainingPipeline:
         
         return self.vulnerability_model
     
-    def train_severity_model(self, feature_data=None):
+    def train_severity_model(self, feature_data: Optional[pd.DataFrame] = None):
         """Train the severity predictor"""
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.model_selection import train_test_split
         from sklearn.metrics import classification_report, accuracy_score
+        from sklearn.preprocessing import LabelEncoder
         
         self.logger.info("Training severity predictor...")
         
         if feature_data is None:
             feature_data = self.feature_data
         
-        # Prepare data
-        X = feature_data.copy()
+        # Get only numeric columns
+        numeric_cols = feature_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        X = feature_data[numeric_cols]
         
         # Get target from processed reports
         y = [getattr(r, 'severity', 'medium') for r in self.processed_reports]
         
         # Encode target
-        from sklearn.preprocessing import LabelEncoder
         le = LabelEncoder()
         y_encoded = le.fit_transform(y)
         
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y_encoded, test_size=0.2, random_state=42
+            X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
         )
         
         # Train model
@@ -244,7 +232,7 @@ class TrainingPipeline:
         
         return self.severity_model
     
-    def train_chain_detector(self, reports=None):
+    def train_chain_detector(self, reports: Optional[List[VulnerabilityReport]] = None):
         """Train the vulnerability chain detector"""
         self.logger.info("Training chain detector...")
         
@@ -252,8 +240,6 @@ class TrainingPipeline:
             reports = self.processed_reports
         
         # For now, use a simple heuristic-based detector
-        # In production, this would be a more sophisticated model
-        
         try:
             from ..models.chain_detector import ChainDetector
             self.chain_detector = ChainDetector()
@@ -286,27 +272,30 @@ class TrainingPipeline:
         
         # Save vulnerability classifier
         if hasattr(self, 'vulnerability_model') and self.vulnerability_model is not None:
-            with open(models_dir / 'vulnerability_classifier.pkl', 'wb') as f:
+            vuln_model_path = models_dir / 'vulnerability_classifier.pkl'
+            with open(vuln_model_path, 'wb') as f:
                 pickle.dump({
                     'model': self.vulnerability_model,
                     'label_encoder': self.vulnerability_label_encoder
                 }, f)
-            self.logger.info("  -> Saved vulnerability_classifier.pkl")
+            self.logger.info(f"  -> Saved vulnerability_classifier.pkl")
         
         # Save severity predictor
         if hasattr(self, 'severity_model') and self.severity_model is not None:
-            with open(models_dir / 'severity_predictor.pkl', 'wb') as f:
+            severity_model_path = models_dir / 'severity_predictor.pkl'
+            with open(severity_model_path, 'wb') as f:
                 pickle.dump({
                     'model': self.severity_model,
                     'label_encoder': self.severity_label_encoder
                 }, f)
-            self.logger.info("  -> Saved severity_predictor.pkl")
+            self.logger.info(f"  -> Saved severity_predictor.pkl")
         
         # Save chain detector
         if hasattr(self, 'chain_detector') and self.chain_detector is not None:
-            with open(models_dir / 'chain_detector.pkl', 'wb') as f:
+            chain_detector_path = models_dir / 'chain_detector.pkl'
+            with open(chain_detector_path, 'wb') as f:
                 pickle.dump(self.chain_detector, f)
-            self.logger.info("  -> Saved chain_detector.pkl")
+            self.logger.info(f"  -> Saved chain_detector.pkl")
         
         self.logger.info(f"All models saved to: {models_dir}")
     
@@ -318,10 +307,10 @@ class TrainingPipeline:
             reports: List of raw vulnerability reports
         """
         # Preprocess
-        self.processed_reports = self.preprocess_data(reports)
+        self.preprocess_reports(reports)
         
         # Engineer features
-        self.feature_data = self.engineer_features(self.processed_reports)
+        self.engineer_features()
         
         # Train models
         self.train_vulnerability_model()
