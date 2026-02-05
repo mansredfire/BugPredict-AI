@@ -120,3 +120,561 @@ bugpredict-ai/
     ├── api.md
     ├── training.md
     └── deployment.md
+
+
+# 🤖 BugPredict AI
+
+<div align="center">
+
+![BugPredict AI Logo](docs/images/logo.png)
+
+**AI-Powered Vulnerability Prediction for Bug Bounty Hunters**
+
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [API](#-api) • [Documentation](#-documentation)
+
+</div>
+
+---
+
+## 📋 Overview
+
+**BugPredict AI** is a machine learning-powered tool that predicts the most likely vulnerabilities in a target application based on its technology stack, historical vulnerability data, and patterns learned from thousands of bug bounty reports.
+
+### 🎯 What It Does
+
+- **Predicts Vulnerabilities**: Uses ML to predict which vulnerability types are most likely present
+- **Severity Assessment**: Estimates the severity of predicted vulnerabilities
+- **Chain Detection**: Identifies potential vulnerability chains for critical exploits
+- **Test Strategy**: Generates prioritized testing strategies
+- **Nuclei Templates**: Auto-generates Nuclei templates for predicted vulnerabilities
+- **Comprehensive Reports**: Produces detailed analysis reports in multiple formats
+
+### 🚀 Why BugPredict AI?
+
+Traditional security testing is time-consuming and often relies on manual checklists. BugPredict AI:
+
+- ⚡ **Saves Time**: Focus on high-probability vulnerabilities first
+- 🎯 **Increases Efficiency**: Prioritize testing efforts based on ML predictions
+- 🔍 **Finds Complex Chains**: Detect vulnerability combinations that lead to critical impact
+- 📊 **Data-Driven**: Learns from thousands of disclosed bug bounty reports
+- 🛠️ **Actionable**: Provides specific test cases and tool recommendations
+
+---
+
+## ✨ Features
+
+### Core Capabilities
+
+- **Multi-Source Data Collection**
+  - HackerOne disclosed reports
+  - Bugcrowd public disclosures
+  - CVE/NVD database
+  - GitHub Security Advisories
+
+- **Advanced ML Models**
+  - Ensemble classification (Random Forest, XGBoost, LightGBM, CatBoost)
+  - Neural networks for complex patterns
+  - Technology stack embeddings
+  - Temporal feature analysis
+
+- **Vulnerability Prediction**
+  - XSS (Cross-Site Scripting)
+  - SQL Injection
+  - IDOR (Insecure Direct Object Reference)
+  - SSRF (Server-Side Request Forgery)
+  - Authentication Bypass
+  - CSRF (Cross-Site Request Forgery)
+  - Business Logic Flaws
+  - And 20+ more vulnerability types
+
+- **Chain Detection**
+  - Account Takeover chains
+  - RCE (Remote Code Execution) chains
+  - Data Exfiltration chains
+  - Privilege Escalation chains
+
+- **Automated Test Generation**
+  - Nuclei templates
+  - Burp Suite configurations
+  - Custom test scripts
+  - Fuzzing dictionaries
+
+### Interfaces
+
+- 🖥️ **CLI**: Command-line interface for quick analysis
+- 🌐 **Web API**: RESTful API for integration
+- 📊 **Web Dashboard**: Interactive UI for visualization
+- 🐍 **Python Library**: Import and use in your own scripts
+
+---
+
+## 🔧 Installation
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package manager)
+- Git
+- 4GB+ RAM recommended
+- 10GB+ disk space
+
+### Quick Install
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/bugpredict-ai.git
+cd bugpredict-ai
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the package
+pip install -e .
+
+# Download pre-trained models (optional)
+python scripts/download_models.py
+```
+
+### Docker Install
+```bash
+# Build Docker image
+docker build -t bugpredict-ai .
+
+# Run container
+docker run -p 8000:8000 bugpredict-ai
+
+# Or use docker-compose
+docker-compose up -d
+```
+
+### Verify Installation
+```bash
+bugpredict --version
+bugpredict --help
+```
+
+---
+
+## 🚀 Quick Start
+
+### CLI Usage
+
+#### Analyze a Single Target
+```bash
+# Basic analysis
+bugpredict analyze -d example.com
+
+# With technology stack
+bugpredict analyze -d example.com --tech "React,Node.js,PostgreSQL"
+
+# Save results
+bugpredict analyze -d example.com -o report.json
+
+# HTML report
+bugpredict analyze -d example.com -o report.html --format html
+```
+
+#### Generate Nuclei Templates
+```bash
+# Generate templates for predicted vulnerabilities
+bugpredict generate-templates -t example.com -o nuclei-templates/
+
+# Run generated templates
+nuclei -t nuclei-templates/ -u https://example.com
+```
+
+#### Batch Analysis
+```bash
+# Create targets file (one domain per line)
+echo "example1.com" > targets.txt
+echo "example2.com" >> targets.txt
+echo "example3.com" >> targets.txt
+
+# Batch analyze
+bugpredict batch -i targets.txt -o batch_results.json --threads 10
+```
+
+### Python Library Usage
+```python
+from bugpredict import ThreatPredictor
+
+# Initialize predictor
+predictor = ThreatPredictor()
+
+# Analyze target
+target_info = {
+    'domain': 'example.com',
+    'technology_stack': ['React', 'Node.js', 'PostgreSQL'],
+    'company_name': 'Example Corp',
+    'endpoints': ['/api/users', '/api/products'],
+    'auth_required': True
+}
+
+results = predictor.analyze_target(target_info)
+
+# Print predictions
+for vuln in results['vulnerability_predictions'][:5]:
+    print(f"{vuln['vulnerability_type']}: {vuln['probability']:.2%}")
+
+# Get test strategy
+strategy = results['test_strategy']
+print(f"Priority targets: {len(strategy['priority_targets'])}")
+```
+
+### API Usage
+
+#### Start API Server
+```bash
+# Start server
+uvicorn src.api.app:app --host 0.0.0.0 --port 8000
+
+# Or with auto-reload for development
+uvicorn src.api.app:app --reload
+```
+
+#### API Requests
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Analyze target
+curl -X POST http://localhost:8000/api/v1/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "example.com",
+    "technology_stack": ["React", "Node.js"],
+    "company_name": "Example Corp"
+  }'
+```
+
+#### Python Requests
+```python
+import requests
+
+url = "http://localhost:8000/api/v1/analyze"
+payload = {
+    "domain": "example.com",
+    "technology_stack": ["React", "Node.js", "PostgreSQL"]
+}
+
+response = requests.post(url, json=payload)
+results = response.json()
+
+print(f"Risk Score: {results['risk_score']}/10")
+for vuln in results['vulnerability_predictions'][:5]:
+    print(f"  • {vuln['vulnerability_type']}: {vuln['probability']:.1%}")
+```
+
+### Web Dashboard
+```bash
+# Start web server
+python -m http.server 8080 --directory src/web
+
+# Open browser
+# Navigate to: http://localhost:8080
+```
+
+---
+
+## 📊 Example Output
+
+### CLI Output
+```
+🎯 BugPredict AI - Analyzing example.com
+
+[*] Detecting technology stack...
+[*] Loading ML models...
+[*] Analyzing and predicting...
+
+✅ Analysis complete!
+
+📊 Vulnerability Predictions
+
+┌──────┬─────────────────────┬─────────────┬─────────────┬──────────┐
+│ Rank │ Vulnerability       │ Probability │ Confidence  │ Priority │
+├──────┼─────────────────────┼─────────────┼─────────────┼──────────┤
+│ 1    │ XSS                 │ 78.5%       │ high        │ ⭐⭐⭐⭐⭐ │
+│ 2    │ IDOR                │ 65.2%       │ high        │ ⭐⭐⭐⭐   │
+│ 3    │ BUSINESS_LOGIC      │ 58.7%       │ medium      │ ⭐⭐⭐⭐   │
+│ 4    │ SSRF                │ 42.1%       │ medium      │ ⭐⭐⭐     │
+│ 5    │ AUTH_BYPASS         │ 38.9%       │ medium      │ ⭐⭐⭐     │
+└──────┴─────────────────────┴─────────────┴─────────────┴──────────┘
+
+Overall Risk Score: 7.8/10
+
+⛓️  Potential Vulnerability Chains
+
+  • Account Takeover Chain
+    Vulnerabilities: INFO_DISCLOSURE → CSRF → AUTH_BYPASS
+    Severity: critical
+
+💡 Recommendations
+
+  • Focus testing efforts on XSS (probability: 78.50%)
+  • Found 1 potential vulnerability chains. Test for chain exploitability.
+  • Recommended tools: Dalfox, XSStrike, Nuclei, Burp Suite
+
+Results saved to report.json
+```
+
+### JSON Output
+```json
+{
+  "target": "example.com",
+  "analysis_timestamp": "2024-02-04T12:34:56.789Z",
+  "vulnerability_predictions": [
+    {
+      "vulnerability_type": "XSS",
+      "probability": 0.785,
+      "confidence": "high",
+      "priority": 5
+    },
+    {
+      "vulnerability_type": "IDOR",
+      "probability": 0.652,
+      "confidence": "high",
+      "priority": 4
+    }
+  ],
+  "severity_predictions": {
+    "XSS": {
+      "severity": "high",
+      "confidence": 0.82
+    },
+    "IDOR": {
+      "severity": "critical",
+      "confidence": 0.75
+    }
+  },
+  "chain_predictions": [
+    {
+      "name": "Account Takeover Chain",
+      "vulns": ["INFO_DISCLOSURE", "CSRF", "AUTH_BYPASS"],
+      "severity": "critical",
+      "description": "Email enumeration + CSRF + Weak auth",
+      "exploitability_score": 8.5
+    }
+  ],
+  "risk_score": 7.8,
+  "test_strategy": {
+    "priority_targets": [
+      {
+        "vulnerability": "XSS",
+        "probability": 0.785,
+        "severity": "high",
+        "priority_score": 1.177,
+        "test_cases": [
+          "Test reflected XSS in all input parameters",
+          "Test stored XSS in user-generated content",
+          "Test DOM-based XSS in JavaScript code"
+        ],
+        "tools": ["Dalfox", "XSStrike", "Nuclei", "Burp Suite"]
+      }
+    ],
+    "time_allocation": {
+      "XSS": "35.7%",
+      "IDOR": "21.4%",
+      "BUSINESS_LOGIC": "14.3%"
+    }
+  },
+  "recommendations": [
+    "Focus testing efforts on XSS (probability: 78.50%)",
+    "Found 1 potential vulnerability chains. Test for chain exploitability.",
+    "Recommended tools: Dalfox, XSStrike, Nuclei, Burp Suite"
+  ]
+}
+```
+
+---
+
+## 🎓 Training Your Own Models
+
+### Collect Data
+```bash
+# Configure data sources in config/training_config.yaml
+# Then run data collection
+python scripts/collect_data.py
+```
+
+### Train Models
+```bash
+# Using CLI
+bugpredict train --config config/training_config.yaml
+
+# Using script
+python scripts/train_model.sh
+
+# Monitor training with MLflow
+mlflow ui
+# Navigate to http://localhost:5000
+```
+
+### Evaluate Models
+```bash
+# Run evaluation
+python scripts/evaluate_models.py
+
+# View metrics
+cat data/models/evaluation_results.json
+```
+
+---
+
+## 📚 Documentation
+
+- [Installation Guide](docs/installation.md)
+- [Usage Guide](docs/usage.md)
+- [API Documentation](docs/api.md)
+- [Training Guide](docs/training.md)
+- [Deployment Guide](docs/deployment.md)
+- [Contributing Guide](CONTRIBUTING.md)
+
+---
+
+## 🛠️ Architecture
+```
+┌─────────────────────────────────────────────┐
+│           BugPredict AI System              │
+└─────────────────────────────────────────────┘
+                    │
+    ┌───────────────┼───────────────┐
+    │               │               │
+    ▼               ▼               ▼
+┌────────┐    ┌─────────┐    ┌──────────┐
+│ Data   │    │   ML    │    │   API    │
+│Pipeline│    │ Engine  │    │  Server  │
+└────────┘    └─────────┘    └──────────┘
+    │               │               │
+    │               │               │
+┌───┴────┐     ┌───┴────┐     ┌────┴─────┐
+│Scrapers│     │Training│     │ CLI/Web  │
+│  APIs  │     │Inference│    │   UI     │
+└────────┘     └────────┘     └──────────┘
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+```bash
+# Clone repository
+git clone https://github.com/yourusername/bugpredict-ai.git
+cd bugpredict-ai
+
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Install pre-commit hooks
+pre-commit install
+
+# Run tests
+pytest
+
+# Run linting
+black src/
+flake8 src/
+mypy src/
+```
+
+### Areas for Contribution
+
+- 🐛 Bug fixes
+- ✨ New features
+- 📝 Documentation improvements
+- 🧪 Test coverage
+- 🎨 UI/UX improvements
+- 🌍 Translations
+- 📊 New ML models
+- 🔍 Data collection improvements
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## ⚠️ Disclaimer
+
+**IMPORTANT**: This tool is for educational and authorized security testing purposes only.
+
+- ✅ Use only on systems you own or have explicit permission to test
+- ✅ Respect bug bounty program rules and scope
+- ✅ Follow responsible disclosure practices
+- ❌ Do not use for unauthorized testing
+- ❌ Do not use for illegal activities
+
+By using this tool, you agree to use it responsibly and legally. The authors are not responsible for misuse.
+
+---
+
+## 🙏 Acknowledgments
+
+- Data sources: HackerOne, Bugcrowd, NVD, GitHub
+- ML frameworks: scikit-learn, XGBoost, LightGBM, CatBoost
+- Bug bounty community for disclosed reports
+- Open-source security tools community
+
+---
+
+## 📞 Contact & Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/bugpredict-ai/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/bugpredict-ai/discussions)
+- **Twitter**: [@BugPredictAI](https://twitter.com/bugpredictai)
+- **Email**: contact@bugpredict.ai
+
+---
+
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/bugpredict-ai&type=Date)](https://star-history.com/#yourusername/bugpredict-ai&Date)
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the Security Research Community**
+
+If this project helps you, please ⭐ star the repository!
+
+</div>
+```
+
+---
+
+## 📄 File: `LICENSE`
+```
+MIT License
+
+Copyright (c) 2024 BugPredict AI Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
