@@ -36,9 +36,12 @@ def create_database(db_path: str, num_reports: int = 100):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
+    # Drop existing table if exists
+    cursor.execute('DROP TABLE IF EXISTS vulnerability_reports')
+    
     # Create table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS vulnerability_reports (
+        CREATE TABLE vulnerability_reports (
             report_id TEXT PRIMARY KEY,
             target_domain TEXT NOT NULL,
             target_company TEXT NOT NULL,
