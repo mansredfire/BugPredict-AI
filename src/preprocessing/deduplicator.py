@@ -25,8 +25,13 @@ class Deduplicator:
         unique_reports = []
         
         for report in reports:
-            if report.report_id not in seen_ids:
-                seen_ids.add(report.report_id)
+            report_id = getattr(report, 'report_id', None)
+            
+            if report_id and report_id not in seen_ids:
+                seen_ids.add(report_id)
+                unique_reports.append(report)
+            elif not report_id:
+                # If no report_id, keep it anyway (shouldn't happen with normalized data)
                 unique_reports.append(report)
             else:
                 self.duplicates_removed += 1
@@ -35,6 +40,10 @@ class Deduplicator:
             print(f"Removed {self.duplicates_removed} duplicate reports")
         
         return unique_reports
+    
+    def deduplicate(self, reports: List[VulnerabilityReport]) -> List[VulnerabilityReport]:
+        """Alias for remove_duplicates - for compatibility with TrainingPipeline"""
+        return self.remove_duplicates(reports)
     
     def remove_similar_duplicates(self, reports: List[VulnerabilityReport], 
                                    threshold: float = 0.9) -> List[VulnerabilityReport]:
@@ -56,10 +65,14 @@ class Deduplicator:
         seen_titles: Set[str] = set()
         
         for report in reports:
-            title_lower = report.title.lower() if report.title else ""
+            title = getattr(report, 'title', '')
+            title_lower = title.lower() if title else ""
             
-            if title_lower not in seen_titles:
+            if title_lower and title_lower not in seen_titles:
                 seen_titles.add(title_lower)
+                unique_reports.append(report)
+            elif not title_lower:
+                # Keep reports without titles
                 unique_reports.append(report)
             else:
                 self.duplicates_removed += 1
