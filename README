@@ -586,7 +586,18 @@ black src/
 flake8 src/
 mypy src/
 ```
+### MIGRATION SCRIPT
+# Preview migration without changes
+python scripts/migrate_to_enhanced.py --dry-run
 
+# Run full migration (with backup)
+python scripts/migrate_to_enhanced.py
+
+# Force migration (skip confirmation)
+python scripts/migrate_to_enhanced.py --force
+
+# Skip backup (not recommended)
+python scripts/migrate_to_enhanced.py --skip-backup
 ### Areas for Contribution
 
 - 🐛 Bug fixes
