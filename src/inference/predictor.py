@@ -220,16 +220,33 @@ class ThreatPredictor:
         
         report = VulnerabilityReport(
             report_id=f"synthetic_{target_info.get('domain', 'unknown')}",
-            title=f"Analysis of {target_info.get('domain', 'Unknown')}",
-            description=target_info.get('description', ''),
-            vulnerability_type='Unknown',
-            severity='medium',
+            platform='bugpredict-ai',
             target_domain=target_info.get('domain', 'unknown'),
             target_company=target_info.get('company_name', 'Unknown'),
+            target_program=target_info.get('domain', 'unknown'),
+            vulnerability_type='Unknown',
+            severity='medium',
+            cvss_score=5.0,
             technology_stack=target_info.get('technology_stack', []),
-            platform='web',
+            endpoint='/',
+            http_method='GET',
+            vulnerability_location='web',
+            description=target_info.get('description', ''),
+            steps_to_reproduce=[],
+            impact='',
+            remediation='',
+            reported_date=None,
+            disclosed_date=None,
+            bounty_amount=0.0,
+            researcher_reputation=0,
             authentication_required=target_info.get('auth_required', False),
-            bounty_amount=0
+            privileges_required='none',
+            user_interaction=False,
+            complexity='medium',
+            tags=[],
+            owasp_category='A01:2021-Broken Access Control',
+            cwe_id=0,
+            raw_data={}
         )
         
         return report
