@@ -83,4 +83,142 @@ class FeatureEngineer:
         features['target_program'] = getattr(report, 'target_program', 'unknown')
         features['vulnerability_location'] = getattr(report, 'vulnerability_location', 'Unknown')
         features['http_method'] = getattr(report, 'http_method', 'Unknown')
-        features['owasp_category'
+        features['owasp_category'] = getattr(report, 'owasp_category', 'Unknown')
+        features['cwe_id'] = getattr(report, 'cwe_id', 'Unknown')
+        
+        # Technology stack features
+        tech_stack = getattr(report, 'technology_stack', [])
+        if tech_stack:
+            features['tech_stack'] = ','.join(tech_stack) if isinstance(tech_stack, list) else str(tech_stack)
+            features['tech_stack_count'] = len(tech_stack) if isinstance(tech_stack, list) else 0
+        else:
+            features['tech_stack'] = 'Unknown'
+            features['tech_stack_count'] = 0
+        
+        # Text length features
+        description = getattr(report, 'description', '')
+        features['description_length'] = len(description) if description else 0
+        
+        title = getattr(report, 'title', '')
+        features['title_length'] = len(title) if title else 0
+        
+        # Risk and exploitability scores (if enriched)
+        features['risk_score'] = getattr(report, 'risk_score', 0.0)
+        features['exploitability_score'] = getattr(report, 'exploitability_score', 0.0)
+        features['impact_score'] = getattr(report, 'impact_score', 0.0)
+        
+        return features
+    
+    def _severity_to_score(self, severity: str) -> float:
+        """Convert severity to numeric score"""
+        severity_map = {
+            'critical': 10.0,
+            'high': 7.5,
+            'medium': 5.0,
+            'low': 2.5,
+            'none': 0.0
+        }
+        return severity_map.get(severity.lower() if severity else 'none', 0.0)
+    
+    def _encode_categorical(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Encode categorical variables"""
+        
+        categorical_columns = [
+            'vulnerability_type', 'platform', 'target_company', 
+            'target_domain', 'target_program', 'vulnerability_location',
+            'http_method', 'owasp_category', 'cwe_id', 'tech_stack'
+        ]
+        
+        for col in categorical_columns:
+            if col in df.columns:
+                # Create label encoder
+                le = LabelEncoder()
+                
+                # Handle missing values
+                df[col] = df[col].fillna('Unknown')
+                
+                # Fit and transform
+                df[f'{col}_encoded'] = le.fit_transform(df[col].astype(str))
+                
+                # Store encoder for later use
+                self.label_encoders[col] = le
+                
+                # Drop original categorical column
+                df = df.drop(columns=[col])
+        
+        return df
+    
+    def _compute_feature_stats(self, df: pd.DataFrame):
+        """Compute feature statistics for normalization"""
+        
+        # Select only numeric columns for statistics
+        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        
+        if not numeric_cols:
+            print("Warning: No numeric columns found for statistics")
+            self.feature_stats = {
+                'mean': {},
+                'std': {},
+                'min': {},
+                'max': {}
+            }
+            return
+        
+        # Compute statistics only on numeric columns
+        numeric_df = df[numeric_cols]
+        
+        self.feature_stats = {
+            'mean': numeric_df.mean().to_dict(),
+            'std': numeric_df.std().to_dict(),
+            'min': numeric_df.min().to_dict(),
+            'max': numeric_df.max().to_dict()
+        }
+        
+        # Store feature names
+        self.feature_names = numeric_cols
+        
+        print(f"Computed statistics for {len(numeric_cols)} numeric features")
+    
+    def transform(self, reports: List[VulnerabilityReport]) -> pd.DataFrame:
+        """
+        Transform new reports using fitted encoders
+        
+        Args:
+            reports: List of VulnerabilityReport objects
+            
+        Returns:
+            DataFrame with engineered features
+        """
+        
+        # Extract features
+        features = []
+        for report in reports:
+            feature_dict = self._extract_features(report)
+            features.append(feature_dict)
+        
+        df = pd.DataFrame(features)
+        
+        # Apply existing encoders
+        categorical_columns = [
+            'vulnerability_type', 'platform', 'target_company', 
+            'target_domain', 'target_program', 'vulnerability_location',
+            'http_method', 'owasp_category', 'cwe_id', 'tech_stack'
+        ]
+        
+        for col in categorical_columns:
+            if col in df.columns and col in self.label_encoders:
+                le = self.label_encoders[col]
+                
+                # Handle missing values
+                df[col] = df[col].fillna('Unknown')
+                
+                # Transform using existing encoder
+                # Handle unseen labels
+                df[f'{col}_encoded'] = df[col].astype(str).apply(
+                    lambda x: le.transform([x])[0] if x in le.classes_ else -1
+                )
+                
+                # Drop original column
+                df = df.drop(columns=[col])
+        
+        return df
