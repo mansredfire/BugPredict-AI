@@ -268,7 +268,7 @@ class EnhancedVulnerabilityExtractor:
             'Cache Poisoning': [
                 'cache poisoning', 'web cache poisoning', 'cache deception',
                 'cache key manipulation', 'cache injection', 'http cache poisoning'
-            ],
+            ]
         }
     
     def _build_cwe_mapping(self) -> Dict[int, str]:
@@ -314,3 +314,151 @@ class EnhancedVulnerabilityExtractor:
             
             # File Operations
             22: 'Path Traversal',
+            434: 'File Upload',
+            73: 'Path Traversal',
+            
+            # CSRF
+            352: 'CSRF',
+            
+            # Deserialization
+            502: 'Deserialization',
+            
+            # Information Disclosure
+            200: 'Information Disclosure',
+            209: 'Information Disclosure',
+            532: 'Information Disclosure',
+            
+            # Business Logic
+            841: 'Business Logic',
+            840: 'Business Logic',
+            
+            # CORS
+            346: 'CORS Misconfiguration',
+            
+            # Cryptography
+            327: 'Weak Cryptography',
+            326: 'Weak Cryptography',
+            780: 'Weak Cryptography'
+        }
+    
+    def extract_vulnerability_type(
+        self, 
+        title: str, 
+        description: str = "", 
+        cwe_id: Optional[int] = None
+    ) -> str:
+        """
+        Extract vulnerability type from title, description, and CWE
+        
+        Args:
+            title: Vulnerability title
+            description: Vulnerability description
+            cwe_id: CWE ID if available
+            
+        Returns:
+            Detected vulnerability type
+        """
+        
+        # Try CWE mapping first
+        if cwe_id and cwe_id in self.cwe_mapping:
+            return self.cwe_mapping[cwe_id]
+        
+        # Combine title and description for keyword matching
+        text = f"{title} {description}".lower()
+        
+        # Check keywords with priority ordering
+        matches = {}
+        
+        for vuln_type, keywords in self.type_keywords.items():
+            for keyword in keywords:
+                if keyword in text:
+                    # Count keyword matches and track position
+                    count = text.count(keyword)
+                    position = text.index(keyword)
+                    
+                    if vuln_type not in matches:
+                        matches[vuln_type] = {'count': 0, 'position': float('inf')}
+                    
+                    matches[vuln_type]['count'] += count
+                    matches[vuln_type]['position'] = min(matches[vuln_type]['position'], position)
+        
+        # Return best match based on count and position
+        if matches:
+            best_match = max(
+                matches.items(),
+                key=lambda x: (x[1]['count'], -x[1]['position'])
+            )
+            return best_match[0]
+        
+        # Default fallback
+        return 'Unknown'
+    
+    def extract_multiple_types(
+        self, 
+        title: str, 
+        description: str = "", 
+        cwe_id: Optional[int] = None
+    ) -> List[str]:
+        """
+        Extract all matching vulnerability types (for chain detection)
+        
+        Args:
+            title: Vulnerability title
+            description: Vulnerability description
+            cwe_id: CWE ID if available
+            
+        Returns:
+            List of detected vulnerability types
+        """
+        
+        types = []
+        
+        # Add CWE-based type
+        if cwe_id and cwe_id in self.cwe_mapping:
+            types.append(self.cwe_mapping[cwe_id])
+        
+        # Combine title and description
+        text = f"{title} {description}".lower()
+        
+        # Find all matching types
+        for vuln_type, keywords in self.type_keywords.items():
+            if any(keyword in text for keyword in keywords):
+                if vuln_type not in types:
+                    types.append(vuln_type)
+        
+        return types if types else ['Unknown']
+    
+    def get_severity_hint(self, vulnerability_type: str) -> str:
+        """
+        Get severity hint based on vulnerability type
+        
+        Args:
+            vulnerability_type: Type of vulnerability
+            
+        Returns:
+            Suggested severity level
+        """
+        
+        critical_types = [
+            'Remote Code Execution', 'SQL Injection', 'Authentication Bypass',
+            'Deserialization', 'Command Injection'
+        ]
+        
+        high_types = [
+            'XXE', 'SSRF', 'XSS', 'IDOR', 'Privilege Escalation',
+            'Account Takeover', 'JWT Vulnerabilities', 'NoSQL Injection'
+        ]
+        
+        medium_types = [
+            'CSRF', 'Path Traversal', 'Open Redirect', 'CORS Misconfiguration',
+            'Information Disclosure', 'File Upload', 'Session Fixation'
+        ]
+        
+        if vulnerability_type in critical_types:
+            return 'critical'
+        elif vulnerability_type in high_types:
+            return 'high'
+        elif vulnerability_type in medium_types:
+            return 'medium'
+        else:
+            return 'low'
