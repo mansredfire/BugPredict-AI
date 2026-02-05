@@ -194,7 +194,93 @@ class ChainDetector:
                 'impact': 'Account compromise at scale',
                 'likelihood': 0.8
             },
-            
+            # ADD these new chain patterns to the _build_chain_patterns() method:
+
+{
+    'name': 'API Rate Limit Bypass to Account Takeover',
+    'vulns': ['Rate Limiting Issues', 'Broken Authentication', 'IDOR'],
+    'severity': 'high',
+    'description': 'No rate limiting → Brute force → Account access',
+    'prerequisites': ['Rate Limiting Issues'],
+    'steps': [
+        'Identify endpoint with no rate limiting',
+        'Brute force credentials or tokens',
+        'Exploit IDOR to access other accounts'
+    ],
+    'impact': 'Mass account compromise',
+    'likelihood': 0.7
+},
+{
+    'name': 'GraphQL Introspection to Data Breach',
+    'vulns': ['GraphQL Introspection', 'Excessive Data Exposure', 'IDOR'],
+    'severity': 'critical',
+    'description': 'GraphQL schema leak → Over-fetching → Data exfiltration',
+    'prerequisites': ['GraphQL Introspection'],
+    'steps': [
+        'Enumerate GraphQL schema via introspection',
+        'Craft queries to over-fetch sensitive data',
+        'Exploit IDOR to access other users data'
+    ],
+    'impact': 'Complete database exposure',
+    'likelihood': 0.8
+},
+{
+    'name': 'Cloud Metadata to Infrastructure Takeover',
+    'vulns': ['SSRF', 'Cloud Misconfiguration', 'S3 Bucket Exposure'],
+    'severity': 'critical',
+    'description': 'SSRF → AWS metadata → Credential theft → S3 access',
+    'prerequisites': ['SSRF'],
+    'steps': [
+        'Exploit SSRF to access 169.254.169.254',
+        'Extract IAM credentials from metadata',
+        'Use credentials to access S3 buckets',
+        'Exfiltrate data or modify infrastructure'
+    ],
+    'impact': 'Complete cloud infrastructure compromise',
+    'likelihood': 0.85
+},
+{
+    'name': 'Race Condition to Privilege Escalation',
+    'vulns': ['Race Condition', 'Business Logic', 'Broken Authorization'],
+    'severity': 'high',
+    'description': 'Race condition → Duplicate privileges → Admin access',
+    'prerequisites': ['Race Condition'],
+    'steps': [
+        'Identify race condition in privilege assignment',
+        'Send concurrent requests to duplicate admin role',
+        'Exploit broken authorization to maintain access'
+    ],
+    'impact': 'Unauthorized administrative access',
+    'likelihood': 0.6
+},
+{
+    'name': 'NoSQL Injection to RCE',
+    'vulns': ['NoSQL Injection', 'Command Injection', 'RCE'],
+    'severity': 'critical',
+    'description': 'NoSQL injection → Command injection → Server compromise',
+    'prerequisites': ['NoSQL Injection'],
+    'steps': [
+        'Exploit NoSQL injection (e.g., MongoDB $where)',
+        'Inject JavaScript code to execute commands',
+        'Achieve remote code execution'
+    ],
+    'impact': 'Complete server compromise',
+    'likelihood': 0.65
+},
+{
+    'name': 'JWT Vulnerability Chain',
+    'vulns': ['JWT Vulnerabilities', 'Broken Authentication', 'IDOR'],
+    'severity': 'critical',
+    'description': 'JWT none algorithm → Token manipulation → Account takeover',
+    'prerequisites': ['JWT Vulnerabilities'],
+    'steps': [
+        'Identify JWT with none algorithm accepted',
+        'Forge JWT token for other users',
+        'Access other accounts via IDOR with forged token'
+    ],
+    'impact': 'Mass account takeover',
+    'likelihood': 0.75
+}
             # Business Logic Chains
             {
                 'name': 'Payment Bypass Chain',
