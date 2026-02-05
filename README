@@ -37,46 +37,86 @@ System Architecture
    ▼         ▼           ▼        ▼           ▼          ▼
 [Scrapers] [APIs]   [Training] [Inference] [CLI]  [Web UI]
 Component Breakdown
-python# Directory Structure
 bugpredict-ai/
-├── data/
-│   ├── raw/                    # Raw scraped data
-│   ├── processed/              # Cleaned and normalized data
-│   ├── features/               # Engineered features
-│   └── models/                 # Trained models
+├── .gitignore
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── setup.py
+├── config/
+│   ├── training_config.yaml
+│   └── inference_config.yaml
+├── docker/
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── .dockerignore
 ├── src/
-│   ├── collectors/             # Data collection modules
+│   ├── __init__.py
+│   ├── collectors/
+│   │   ├── __init__.py
+│   │   ├── data_sources.py
 │   │   ├── hackerone_scraper.py
 │   │   ├── bugcrowd_scraper.py
 │   │   ├── cve_collector.py
-│   │   └── github_advisory_collector.py
-│   ├── preprocessing/          # Data cleaning
+│   │   └── tech_detector.py
+│   ├── preprocessing/
+│   │   ├── __init__.py
 │   │   ├── normalizer.py
 │   │   ├── deduplicator.py
 │   │   └── enricher.py
-│   ├── features/               # Feature engineering
-│   │   ├── tech_stack_encoder.py
-│   │   ├── temporal_features.py
-│   │   └── graph_features.py
-│   ├── models/                 # ML models
+│   ├── features/
+│   │   ├── __init__.py
+│   │   ├── feature_engineer.py
+│   │   └── tech_stack_encoder.py
+│   ├── models/
+│   │   ├── __init__.py
 │   │   ├── vulnerability_classifier.py
 │   │   ├── severity_predictor.py
-│   │   ├── chain_detector.py
-│   │   └── ensemble_model.py
-│   ├── inference/              # Prediction engine
+│   │   └── chain_detector.py
+│   ├── training/
+│   │   ├── __init__.py
+│   │   └── pipeline.py
+│   ├── inference/
+│   │   ├── __init__.py
 │   │   ├── predictor.py
-│   │   ├── test_generator.py
-│   │   └── report_builder.py
-│   ├── api/                    # REST API
+│   │   └── template_generator.py
+│   ├── api/
+│   │   ├── __init__.py
 │   │   ├── app.py
 │   │   ├── routes.py
 │   │   └── schemas.py
-│   └── cli/                    # Command-line interface
-│       └── main.py
-├── notebooks/                  # Jupyter notebooks for research
-├── tests/                      # Unit and integration tests
-├── scripts/                    # Utility scripts
-├── docker/                     # Docker configurations
-└── docs/                       # Documentation
-
-📊 Data Collection Strategy
+│   ├── cli/
+│   │   ├── __init__.py
+│   │   └── main.py
+│   └── web/
+│       ├── index.html
+│       ├── static/
+│       │   ├── css/
+│       │   └── js/
+│       └── templates/
+├── tests/
+│   ├── __init__.py
+│   ├── test_collectors.py
+│   ├── test_features.py
+│   ├── test_models.py
+│   └── test_inference.py
+├── scripts/
+│   ├── download_data.sh
+│   ├── train_model.sh
+│   └── deploy.sh
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   ├── features/
+│   └── models/
+├── notebooks/
+│   ├── 01_data_exploration.ipynb
+│   ├── 02_feature_engineering.ipynb
+│   ├── 03_model_training.ipynb
+│   └── 04_evaluation.ipynb
+└── docs/
+    ├── installation.md
+    ├── usage.md
+    ├── api.md
+    ├── training.md
+    └── deployment.md
