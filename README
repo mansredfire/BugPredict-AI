@@ -9,28 +9,30 @@
 
 ## 🎯 Overview
 
-BugPredict AI analyzes target domains, predicts likely vulnerabilities using machine learning, and automatically generates custom Nuclei YAML templates for security testing.
+BugPredict AI is a **Nuclei template generator** that uses machine learning trained on historical data to generate customized security testing templates.
 
-**Simple Workflow:**
-1. Train models on vulnerability data (CSV/JSON/Database)
-2. Analyze any target domain
-3. Get custom Nuclei templates
-4. Scan with Nuclei
+**How It Works:**
+1. **Train ML models** on your data (with version-specific vulnerability data)
+2. **Provide target domain** for template generation
+3. **ML predicts** likely vulnerability types based on learned patterns from training data
+4. **Generates custom Nuclei YAML templates** prioritized by prediction confidence
+5. **You scan** the target with Nuclei using the generated templates
 
-### Core Capabilities
-- ✅ **10 Vulnerability Types**: SQL Injection, XSS, SSRF, IDOR, CSRF, Authentication Bypass, RCE, XXE, Path Traversal, Information Disclosure
-- ✅ **2 ML Models**: Vulnerability Classifier (Random Forest), Severity Predictor (Random Forest)
-- ✅ **28 Feature Engineering**: CVSS scores, severity levels, tech stack analysis, complexity scoring
-- ✅ **Nuclei Template Generator**: Generates 10 custom YAML templates per target
-- ✅ **Risk Scoring**: 0-10 risk assessment based on predictions
+**What This System Does:**
+- ✅ Learns patterns from historical vulnerability reports
+- ✅ Generates customized Nuclei templates (not generic ones)
+- ✅ Prioritizes vulnerability types based on ML predictions
+- ✅ Saves time by auto-generating 10 templates instead of manual creation
 
-### Training Data Sources
-- ✅ **CSV Files** - Import from spreadsheets
-- ✅ **JSON Files** - Import structured data
-- ✅ **SQL Databases** - SQLite, PostgreSQL, MySQL, SQL Server
-- ✅ **Mock Data** - Built-in generator for testing (no external data needed)
+**What This System Does NOT Do:**
+- ❌ Does not actively scan or test target domains
+- ❌ Does not fingerprint or detect tech stack versions (unless you add this capability)
+- ❌ Does not make HTTP requests to targets
+- ❌ Does not find vulnerabilities (that's Nuclei's job)
 
----
+**Think of it as:** An intelligent template generator that learns from your past findings to create better starting points for Nuclei scans.
+
+**The Value:** Instead of manually creating generic Nuclei templates, you get ML-generated templates weighted by patterns learned 
 
 ## 🔧 System Requirements
 
