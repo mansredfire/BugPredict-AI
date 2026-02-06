@@ -1,0 +1,1010 @@
+# 🔧 Scripts Reference & Workflows
+
+Complete guide to all BugPredict AI scripts and common workflows.
+
+---
+
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Available Scripts](#available-scripts)
+3. [Script Reference](#script-reference)
+   - [create_mock_database.py](#create_mock_databasepy)
+   - [train_from_csv.py](#train_from_csvpy)
+   - [train_from_json.py](#train_from_jsonpy)
+   - [train_from_database.py](#train_from_databasepy)
+   - [generate_nuclei_templates.py](#generate_nuclei_templatespy)
+4. [Common Workflows](#common-workflows)
+5. [Advanced Workflows](#advanced-workflows)
+6. [Troubleshooting](#troubleshooting)
+
+---
+
+## 🎯 Overview
+
+BugPredict AI provides 5 main scripts for data generation, model training, and template generation. All scripts are located in the `scripts/` directory.
+
+**Script Categories:**
+- **Data Generation:** `create_mock_database.py`
+- **Model Training:** `train_from_csv.py`, `train_from_json.py`, `train_from_database.py`
+- **Template Generation:** `generate_nuclei_templates.py`
+
+---
+
+## 📂 Available Scripts
+
+| Script | Purpose | Input | Output |
+|--------|---------|-------|--------|
+| `create_mock_database.py` | Generate mock vulnerability data | None | SQLite database |
+| `train_from_csv.py` | Train models from CSV | CSV file | Trained models |
+| `train_from_json.py` | Train models from JSON | JSON file | Trained models |
+| `train_from_database.py` | Train models from database | Database connection | Trained models |
+| `generate_nuclei_templates.py` | Generate Nuclei templates | Target domain | YAML templates |
+
+---
+
+## 📖 Script Reference
+
+### `create_mock_database.py`
+
+**Purpose:** Generate a SQLite database with realistic mock vulnerability data for testing and development.
+
+#### Usage
+```bash
+python scripts/create_mock_database.py [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Short | Required | Default | Description |
+|----------|-------|----------|---------|-------------|
+| `--output` | `-o` | No | `data/mock_vulns.db` | Output database file path |
+| `--reports` | `-r` | No | `100` | Number of vulnerability reports to generate |
+
+#### Examples
+
+**Generate 100 mock reports (default):**
+```bash
+python scripts/create_mock_database.py
+```
+
+**Generate 1000 mock reports:**
+```bash
+python scripts/create_mock_database.py --reports 1000
+```
+
+**Custom output location:**
+```bash
+python scripts/create_mock_database.py --reports 500 --output data/test_vulns.db
+```
+
+**Large dataset for production testing:**
+```bash
+python scripts/create_mock_database.py --reports 5000 --output data/production_test.db
+```
+
+#### Output
+```
+======================================================================
+Mock Vulnerability Database Generator
+======================================================================
+
+Creating 100 mock vulnerability reports...
+
+✓ Created database: data/mock_vulns.db
+Total reports: 100
+
+Vulnerability breakdown:
+  SQL Injection                  12
+  XSS                            11
+  SSRF                           10
+  IDOR                            9
+  CSRF                           10
+  Authentication Bypass           8
+  RCE                             9
+  XXE                            11
+  Path Traversal                 10
+  Information Disclosure         10
+
+Severity breakdown:
+  high       28
+  medium     26
+  critical   24
+  low        22
+
+======================================================================
+Next steps:
+  1. View tables: python scripts/train_from_database.py --db 'sqlite:///data/mock_vulns.db' --list-tables
+  2. View schema: python scripts/train_from_database.py --db 'sqlite:///data/mock_vulns.db' --schema vulnerability_reports
+  3. Train models: python scripts/train_from_database.py --db 'sqlite:///data/mock_vulns.db' --table vulnerability_reports
+======================================================================
+```
+
+#### What Gets Generated
+
+- **Realistic data distribution** across 10 vulnerability types
+- **Balanced severity levels** (critical, high, medium, low)
+- **Tech stacks** (React, Node.js, MySQL, etc.)
+- **CVSS scores** matching severity levels
+- **Bounty amounts** correlating with severity
+- **Endpoints and HTTP methods**
+- **Dates** within the last year
+
+---
+
+### `train_from_csv.py`
+
+**Purpose:** Train ML models from CSV file containing vulnerability reports.
+
+#### Usage
+```bash
+python scripts/train_from_csv.py [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Short | Required | Default | Description |
+|----------|-------|----------|---------|-------------|
+| `--input` | `-i` | Yes | - | Input CSV file path |
+| `--output-dir` | `-o` | No | `data/models` | Directory to save trained models |
+| `--validate-only` | - | No | `False` | Only validate CSV, don't train |
+
+#### CSV Format Requirements
+
+**Required columns:**
+- `report_id`
+- `target_domain`
+- `target_company`
+- `vulnerability_type`
+- `severity`
+- `cvss_score`
+
+**Optional columns (improve accuracy):**
+- `tech_stack`
+- `description`
+- `endpoint`
+- `http_method`
+- `bounty_amount`
+
+#### Examples
+
+**Validate CSV before training:**
+```bash
+python scripts/train_from_csv.py --input examples/sample_vulnerabilities.csv --validate-only
+```
+
+**Train from CSV:**
+```bash
+python scripts/train_from_csv.py --input examples/sample_vulnerabilities.csv
+```
+
+**Train with custom output directory:**
+```bash
+python scripts/train_from_csv.py --input data/vulns.csv --output-dir custom_models/
+```
+
+**Train from multiple CSV files (combine first):**
+```bash
+# On Linux/Mac
+cat data/vulns_2024.csv data/vulns_2025.csv > data/combined.csv
+python scripts/train_from_csv.py --input data/combined.csv
+
+# On Windows PowerShell
+Get-Content data\vulns_2024.csv, data\vulns_2025.csv | Set-Content data\combined.csv
+python scripts/train_from_csv.py --input data\combined.csv
+```
+
+#### Output
+```
+======================================================================
+BugPredict AI - CSV Training
+======================================================================
+
+Validating CSV file: examples/sample_vulnerabilities.csv
+✓ CSV is valid
+  Rows: 100
+  Columns: ['report_id', 'target_domain', ...]
+
+Importing vulnerability reports...
+✓ Imported 100 reports
+
+Preprocessing reports...
+✓ Preprocessed 100 reports
+
+Engineering features...
+✓ Features engineered (28 features)
+
+Training models...
+──────────────────────────────────────────────────────────────────────
+Training vulnerability classifier...
+✓ Vulnerability classifier trained (Accuracy: 92.5%)
+
+Training severity predictor...
+✓ Severity predictor trained (Accuracy: 98.0%)
+
+Training chain detector...
+✓ Chain detector trained
+
+Saving models to: data/models
+✓ Models saved
+
+======================================================================
+TRAINING COMPLETE
+======================================================================
+
+Models saved to: C:\...\BugPredict-AI\data\models
+
+Next steps:
+  1. Generate templates: python scripts/generate_nuclei_templates.py --target example.com
+```
+
+---
+
+### `train_from_json.py`
+
+**Purpose:** Train ML models from JSON file containing vulnerability reports.
+
+#### Usage
+```bash
+python scripts/train_from_json.py [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Short | Required | Default | Description |
+|----------|-------|----------|---------|-------------|
+| `--input` | `-i` | Yes | - | Input JSON file path |
+| `--output-dir` | `-o` | No | `data/models` | Directory to save trained models |
+| `--validate-only` | - | No | `False` | Only validate JSON, don't train |
+
+#### JSON Format Requirements
+
+**Array of objects:**
+```json
+[
+  {
+    "report_id": "001",
+    "target_domain": "example.com",
+    "target_company": "Example Corp",
+    "vulnerability_type": "SQL Injection",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "tech_stack": ["React", "Node.js", "MySQL"]
+  }
+]
+```
+
+#### Examples
+
+**Validate JSON before training:**
+```bash
+python scripts/train_from_json.py --input examples/sample_vulnerabilities.json --validate-only
+```
+
+**Train from JSON:**
+```bash
+python scripts/train_from_json.py --input data/vulns.json
+```
+
+**Train with custom output directory:**
+```bash
+python scripts/train_from_json.py --input api_data.json --output-dir models_v2/
+```
+
+#### Output
+
+Same format as `train_from_csv.py`
+
+---
+
+### `train_from_database.py`
+
+**Purpose:** Train ML models from SQL database (SQLite, PostgreSQL, MySQL, SQL Server).
+
+#### Usage
+```bash
+python scripts/train_from_database.py [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Short | Required | Default | Description |
+|----------|-------|----------|---------|-------------|
+| `--db` | - | Yes | - | Database connection string |
+| `--table` | - | Conditional | - | Table name (required unless using --list-tables or --schema) |
+| `--output-dir` | `-o` | No | `data/models` | Directory to save trained models |
+| `--limit` | - | No | None | Limit number of records to import |
+| `--where` | - | No | None | SQL WHERE clause for filtering |
+| `--list-tables` | - | No | `False` | List all tables and exit |
+| `--schema` | - | No | None | Show table schema and exit |
+| `--validate-only` | - | No | `False` | Only validate connection, don't train |
+
+#### Connection String Formats
+```bash
+# SQLite
+sqlite:///data/database.db
+
+# PostgreSQL
+postgresql://user:password@host:port/database
+
+# MySQL
+mysql://user:password@host:port/database
+
+# SQL Server
+mssql+pyodbc://user:password@host/database?driver=ODBC+Driver+17+for+SQL+Server
+```
+
+#### Examples
+
+**Validate database connection:**
+```bash
+python scripts/train_from_database.py --db "sqlite:///data/vulns.db" --validate-only
+```
+
+**List all tables:**
+```bash
+python scripts/train_from_database.py --db "sqlite:///data/vulns.db" --list-tables
+```
+
+**View table schema:**
+```bash
+python scripts/train_from_database.py --db "sqlite:///data/vulns.db" --schema vulnerability_reports
+```
+
+**Train from SQLite:**
+```bash
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports
+```
+
+**Train from PostgreSQL:**
+```bash
+python scripts/train_from_database.py \
+  --db "postgresql://vulnuser:password@localhost:5432/vulndb" \
+  --table vulnerability_reports
+```
+
+**Train from MySQL:**
+```bash
+python scripts/train_from_database.py \
+  --db "mysql://vulnuser:password@localhost:3306/vulndb" \
+  --table vulnerability_reports
+```
+
+**Train with filters (high severity only):**
+```bash
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --where "severity='high' OR severity='critical'"
+```
+
+**Train with limit (first 500 records):**
+```bash
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --limit 500
+```
+
+**Combine filters and limit:**
+```bash
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --where "reported_date >= '2025-01-01'" \
+  --limit 1000
+```
+
+#### Output
+
+Same format as `train_from_csv.py`
+
+---
+
+### `generate_nuclei_templates.py`
+
+**Purpose:** Generate custom Nuclei YAML templates based on trained models and target domain analysis.
+
+#### Usage
+```bash
+python scripts/generate_nuclei_templates.py [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Short | Required | Default | Description |
+|----------|-------|----------|---------|-------------|
+| `--target` | `-t` | Yes | - | Target domain to analyze |
+| `--models-dir` | `-m` | No | `data/models` | Directory containing trained models |
+| `--output-dir` | `-o` | No | `nuclei-templates/custom` | Directory to save templates |
+
+#### Prerequisites
+
+- **Trained models must exist** in `data/models/` (or specified directory)
+- Models required:
+  - `vulnerability_classifier.pkl`
+  - `severity_predictor.pkl`
+  - `chain_detector.pkl`
+  - `feature_engineer.pkl`
+
+#### Examples
+
+**Generate templates for a domain:**
+```bash
+python scripts/generate_nuclei_templates.py --target example.com
+```
+
+**Use custom models directory:**
+```bash
+python scripts/generate_nuclei_templates.py --target hackerone.com --models-dir custom_models/
+```
+
+**Custom output directory:**
+```bash
+python scripts/generate_nuclei_templates.py --target bugcrowd.com --output-dir templates/bugcrowd/
+```
+
+**Generate for multiple targets:**
+```bash
+python scripts/generate_nuclei_templates.py --target target1.com
+python scripts/generate_nuclei_templates.py --target target2.com
+python scripts/generate_nuclei_templates.py --target target3.com
+```
+
+#### Output
+```
+Loading models...
+Loading models from data\models...
+✓ Loaded FeatureEngineer
+✓ Loaded VulnerabilityClassifier
+✓ Loaded SeverityPredictor
+✓ Loaded ChainDetector
+✓ All models loaded successfully
+
+Analyzing example.com...
+======================================================================
+ANALYZING TARGET: example.com
+======================================================================
+
+Auto-detected technologies: ['Unknown']
+
+Extracting features...
+Generated 28 features
+
+Predicting vulnerabilities...
+Predicting severities...
+Detecting vulnerability chains...
+Generating test strategy...
+
+======================================================================
+ANALYSIS COMPLETE
+Risk Score: 6.8/10 (MEDIUM-HIGH)
+Predicted Vulnerabilities: 10
+Detected Chains: 0
+======================================================================
+
+Generating Nuclei templates...
+  ✓ Generated: sql-injection-example-com-20260205.yaml
+  ✓ Generated: xss-example-com-20260205.yaml
+  ✓ Generated: ssrf-example-com-20260205.yaml
+  ✓ Generated: idor-example-com-20260205.yaml
+  ✓ Generated: csrf-example-com-20260205.yaml
+  ✓ Generated: authentication-bypass-example-com-20260205.yaml
+  ✓ Generated: rce-example-com-20260205.yaml
+  ✓ Generated: xxe-example-com-20260205.yaml
+  ✓ Generated: path-traversal-example-com-20260205.yaml
+  ✓ Generated: information-disclosure-example-com-20260205.yaml
+
+✓ Generated 10 templates
+✓ Saved to: nuclei-templates/custom
+
+Usage:
+  nuclei -t nuclei-templates/custom -u https://example.com
+```
+
+#### Generated Templates
+
+Each template includes:
+- **Vulnerability type-specific checks**
+- **Multiple attack vectors**
+- **Pattern matchers**
+- **Severity ratings**
+- **CWE mappings**
+- **CVSS scores**
+
+**Template naming format:**
+```
+{vulnerability_type}-{domain}-{date}.yaml
+```
+
+**Example:**
+```
+sql-injection-example-com-20260205.yaml
+xss-hackerone-com-20260205.yaml
+```
+
+---
+
+## 🔄 Common Workflows
+
+### Workflow 1: Quick Start with Mock Data
+
+**Goal:** Get started quickly without real vulnerability data.
+
+**Time:** ~2 minutes
+
+**Steps:**
+```bash
+# Step 1: Generate mock database (100 reports)
+python scripts/create_mock_database.py --reports 100
+
+# Step 2: Train models
+python scripts/train_from_database.py \
+  --db "sqlite:///data/mock_vulns.db" \
+  --table vulnerability_reports
+
+# Step 3: Generate templates
+python scripts/generate_nuclei_templates.py --target example.com
+
+# Step 4: Use templates with Nuclei
+nuclei -t nuclei-templates/custom -u https://example.com
+```
+
+**Result:** Trained models + 10 Nuclei templates ready to use.
+
+---
+
+### Workflow 2: Training from CSV File
+
+**Goal:** Train models from your own CSV data.
+
+**Time:** ~5 minutes
+
+**Steps:**
+```bash
+# Step 1: Prepare your CSV file
+# Ensure it has required columns: report_id, target_domain, target_company,
+# vulnerability_type, severity, cvss_score
+
+# Step 2: Validate CSV
+python scripts/train_from_csv.py \
+  --input data/my_vulnerabilities.csv \
+  --validate-only
+
+# Step 3: Train models
+python scripts/train_from_csv.py \
+  --input data/my_vulnerabilities.csv
+
+# Step 4: Generate templates
+python scripts/generate_nuclei_templates.py --target yourtarget.com
+
+# Step 5: Scan with Nuclei
+nuclei -t nuclei-templates/custom -u https://yourtarget.com
+```
+
+---
+
+### Workflow 3: Production Database Training
+
+**Goal:** Train models from production PostgreSQL database.
+
+**Time:** ~10 minutes
+
+**Steps:**
+```bash
+# Step 1: Validate database connection
+python scripts/train_from_database.py \
+  --db "postgresql://user:pass@localhost:5432/vulndb" \
+  --validate-only
+
+# Step 2: List available tables
+python scripts/train_from_database.py \
+  --db "postgresql://user:pass@localhost:5432/vulndb" \
+  --list-tables
+
+# Step 3: View table schema
+python scripts/train_from_database.py \
+  --db "postgresql://user:pass@localhost:5432/vulndb" \
+  --schema vulnerability_reports
+
+# Step 4: Train models (with filter for recent data)
+python scripts/train_from_database.py \
+  --db "postgresql://user:pass@localhost:5432/vulndb" \
+  --table vulnerability_reports \
+  --where "reported_date >= '2025-01-01'"
+
+# Step 5: Generate templates for multiple targets
+python scripts/generate_nuclei_templates.py --target client1.com
+python scripts/generate_nuclei_templates.py --target client2.com
+python scripts/generate_nuclei_templates.py --target client3.com
+```
+
+---
+
+### Workflow 4: Iterative Model Improvement
+
+**Goal:** Start with small dataset, gradually improve accuracy.
+
+**Time:** ~30 minutes
+
+**Steps:**
+```bash
+# Step 1: Train on 100 records (quick test)
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --limit 100
+
+# Check accuracy in output
+# Example: Vulnerability classifier accuracy: 75.0%
+
+# Step 2: Train on 500 records (better accuracy)
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --limit 500
+
+# Check accuracy in output
+# Example: Vulnerability classifier accuracy: 85.0%
+
+# Step 3: Train on all data (best accuracy)
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports
+
+# Check accuracy in output
+# Example: Vulnerability classifier accuracy: 92.5%
+
+# Step 4: Generate production templates
+python scripts/generate_nuclei_templates.py --target production-target.com
+```
+
+---
+
+### Workflow 5: Multi-Target Template Generation
+
+**Goal:** Generate templates for multiple bug bounty targets.
+
+**Time:** ~5 minutes (after models are trained)
+
+**Steps:**
+```bash
+# Ensure models are trained first
+# (Use any training workflow above)
+
+# Generate templates for multiple targets
+python scripts/generate_nuclei_templates.py --target hackerone.com
+python scripts/generate_nuclei_templates.py --target bugcrowd.com
+python scripts/generate_nuclei_templates.py --target intigriti.com
+python scripts/generate_nuclei_templates.py --target yeswehack.com
+
+# All templates are in nuclei-templates/custom/
+# Organized by domain and date
+
+# Scan all targets
+nuclei -t nuclei-templates/custom -l targets.txt
+```
+
+---
+
+## 🚀 Advanced Workflows
+
+### Workflow 6: Filtered Training for Specific Vulnerability Types
+
+**Goal:** Train specialized models for specific vulnerability categories.
+
+**Steps:**
+```bash
+# Train on SQL Injection only
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --where "vulnerability_type='SQL Injection'" \
+  --output-dir models/sql_injection/
+
+# Train on XSS only
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --where "vulnerability_type='XSS'" \
+  --output-dir models/xss/
+
+# Generate templates using specialized models
+python scripts/generate_nuclei_templates.py \
+  --target target.com \
+  --models-dir models/sql_injection/ \
+  --output-dir templates/sql_focused/
+```
+
+---
+
+### Workflow 7: Monthly Model Retraining
+
+**Goal:** Keep models up-to-date with latest vulnerability data.
+
+**Steps:**
+```bash
+# Backup old models
+mkdir -p data/models_archive/2025-02/
+cp data/models/*.pkl data/models_archive/2025-02/
+
+# Train on latest month's data
+python scripts/train_from_database.py \
+  --db "postgresql://user:pass@localhost:5432/vulndb" \
+  --table vulnerability_reports \
+  --where "reported_date >= '2025-02-01' AND reported_date < '2025-03-01'"
+
+# Compare accuracy with previous models
+# If accuracy is better, keep new models
+# If accuracy is worse, revert to archived models
+```
+
+---
+
+### Workflow 8: Combined Data Sources
+
+**Goal:** Train on data from multiple sources.
+
+**Steps:**
+```bash
+# Step 1: Generate mock data as baseline
+python scripts/create_mock_database.py --reports 500 --output data/baseline.db
+
+# Step 2: Add your CSV data to database
+# (Manually import CSV into SQLite using DB tools)
+
+# Step 3: Add API data (JSON) to database
+# (Manually import JSON into SQLite using DB tools)
+
+# Step 4: Train on combined dataset
+python scripts/train_from_database.py \
+  --db "sqlite:///data/baseline.db" \
+  --table vulnerability_reports
+
+# Result: Models trained on diverse data sources
+```
+
+---
+
+### Workflow 9: A/B Testing Different Models
+
+**Goal:** Compare models trained on different datasets.
+
+**Steps:**
+```bash
+# Train Model A (all data)
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --output-dir models/model_a/
+
+# Train Model B (high severity only)
+python scripts/train_from_database.py \
+  --db "sqlite:///data/vulns.db" \
+  --table vulnerability_reports \
+  --where "severity='high' OR severity='critical'" \
+  --output-dir models/model_b/
+
+# Generate templates with Model A
+python scripts/generate_nuclei_templates.py \
+  --target test.com \
+  --models-dir models/model_a/ \
+  --output-dir templates/test_a/
+
+# Generate templates with Model B
+python scripts/generate_nuclei_templates.py \
+  --target test.com \
+  --models-dir models/model_b/ \
+  --output-dir templates/test_b/
+
+# Compare templates and scan results
+# Keep the model that performs better
+```
+
+---
+
+### Workflow 10: Automation Script
+
+**Goal:** Automate the entire workflow with a single script.
+
+**Create `scripts/automated_workflow.sh` (Linux/Mac):**
+```bash
+#!/bin/bash
+
+# Automated BugPredict AI Workflow
+echo "Starting automated workflow..."
+
+# Step 1: Generate mock data
+echo "Generating mock data..."
+python scripts/create_mock_database.py --reports 1000
+
+# Step 2: Train models
+echo "Training models..."
+python scripts/train_from_database.py \
+  --db "sqlite:///data/mock_vulns.db" \
+  --table vulnerability_reports
+
+# Step 3: Generate templates for targets
+echo "Generating templates..."
+while IFS= read -r target; do
+  python scripts/generate_nuclei_templates.py --target "$target"
+done < targets.txt
+
+# Step 4: Run Nuclei scans
+echo "Running Nuclei scans..."
+nuclei -t nuclei-templates/custom -l targets.txt -o results/scan_results.txt
+
+echo "Workflow complete!"
+```
+
+**Make executable and run:**
+```bash
+chmod +x scripts/automated_workflow.sh
+./scripts/automated_workflow.sh
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: "No such file or directory"
+
+**Problem:** Script can't find input file.
+
+**Solution:**
+```bash
+# Use absolute path
+python scripts/train_from_csv.py --input /full/path/to/data.csv
+
+# Or ensure you're in project root
+pwd  # Should show: .../BugPredict-AI
+python scripts/train_from_csv.py --input data/vulns.csv
+```
+
+---
+
+### Issue: "Models not found"
+
+**Problem:** `generate_nuclei_templates.py` can't find trained models.
+
+**Solution:**
+```bash
+# Check if models exist
+ls data/models/  # Should show .pkl files
+
+# Train models first
+python scripts/train_from_database.py --db "..." --table ...
+
+# Then generate templates
+python scripts/generate_nuclei_templates.py --target example.com
+```
+
+---
+
+### Issue: Low accuracy (<70%)
+
+**Problem:** Not enough training data.
+
+**Solution:**
+```bash
+# Generate more mock data
+python scripts/create_mock_database.py --reports 1000
+
+# Or add more real data to your CSV/database
+# Then retrain
+```
+
+---
+
+### Issue: Training takes too long
+
+**Problem:** Large dataset slowing down training.
+
+**Solution:**
+```bash
+# Use limit during development
+python scripts/train_from_database.py \
+  --db "..." \
+  --table reports \
+  --limit 500  # Train on subset first
+
+# Once satisfied, train on all data
+python scripts/train_from_database.py --db "..." --table reports
+```
+
+---
+
+### Issue: Template generation fails
+
+**Problem:** Missing or corrupted model files.
+
+**Solution:**
+```bash
+# Check model files
+ls -la data/models/
+
+# Should contain:
+# - vulnerability_classifier.pkl
+# - severity_predictor.pkl
+# - chain_detector.pkl
+# - feature_engineer.pkl
+
+# If missing, retrain
+python scripts/train_from_database.py --db "..." --table ...
+```
+
+---
+
+## 📚 Quick Command Reference
+
+### Data Generation
+```bash
+# Mock data
+python scripts/create_mock_database.py --reports 1000
+```
+
+### Training
+```bash
+# CSV
+python scripts/train_from_csv.py --input data.csv
+
+# JSON
+python scripts/train_from_json.py --input data.json
+
+# Database
+python scripts/train_from_database.py --db "CONNECTION" --table TABLE
+
+# With filters
+python scripts/train_from_database.py --db "..." --table ... --where "severity='high'"
+
+# With limit
+python scripts/train_from_database.py --db "..." --table ... --limit 500
+```
+
+### Template Generation
+```bash
+# Single target
+python scripts/generate_nuclei_templates.py --target example.com
+
+# Multiple targets
+python scripts/generate_nuclei_templates.py --target target1.com
+python scripts/generate_nuclei_templates.py --target target2.com
+```
+
+### Validation
+```bash
+# CSV
+python scripts/train_from_csv.py --input data.csv --validate-only
+
+# JSON
+python scripts/train_from_json.py --input data.json --validate-only
+
+# Database
+python scripts/train_from_database.py --db "..." --validate-only
+```
+
+### Inspection
+```bash
+# List tables
+python scripts/train_from_database.py --db "..." --list-tables
+
+# View schema
+python scripts/train_from_database.py --db "..." --schema TABLE_NAME
+```
+
+---
+
+## 🎯 Next Steps
+
+After using these scripts:
+
+1. **Review generated templates** in `nuclei-templates/custom/`
+2. **Scan targets** using Nuclei: `nuclei -t nuclei-templates/custom -u TARGET`
+3. **Analyze results** and adjust training data
+4. **Retrain models** with improved data for better accuracy
+
+---
+
+**Happy scanning!** 🎯
